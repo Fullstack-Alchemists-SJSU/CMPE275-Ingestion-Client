@@ -3,11 +3,11 @@
 
 #include <QTcpSocket>
 #include <QString>
+#include "DataStreamer.h"
 
 // Function to setup listening for folder data updates
-void setupFolderDataListener(QTcpSocket* socket);
+void setupFolderDataListener(QTcpSocket* socket, DataStreamer &streamer);
 
-// Function to process the folder data
-void processFolderData(const QString& folderName, bool isPrimary);
+
 
 #endif // FOLDERDATAHANDLER_H

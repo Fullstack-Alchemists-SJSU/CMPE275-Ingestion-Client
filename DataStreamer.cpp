@@ -1,5 +1,7 @@
 #include "DataStreamer.h"
 #include <QDebug>
+#include <QString>
+#include <QQueue>
 
 DataStreamer::DataStreamer(const QString &host, quint16 port)
 {
@@ -27,8 +29,8 @@ void DataStreamer::processNextDirectory()
     if (!directories.isEmpty())
     {
         QString directory = directories.dequeue();
-        CSVProcessor processor(directory);
-        dataChunks = processor.processFiles(); // Process all files in the directory
+        processor = std::make_unique<CSVProcessor>(directory);
+        dataChunks = processor->processFiles(); // Process all files in the directory
         currentChunkIndex = 0;
 
         if (!sendTimer.isActive())

@@ -23,6 +23,8 @@ add_executable(ingestion-client
   CSVProcessor.cpp
   QueryModule.h
   QueryModule.cpp
+  DataStreamer.h
+  DataStreamer.cpp
 )
 
 target_link_libraries(ingestion-client Qt6::Core Qt6::Network)

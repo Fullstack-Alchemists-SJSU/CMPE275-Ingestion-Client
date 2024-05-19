@@ -25,11 +25,12 @@ int main(int argc, char *argv[])
         QString analyticsLeaderAddress = NodeReg::getMetadataAnalyticsLeader();
         std::cout << "Metadata Analytics Leader Address: " << analyticsLeaderAddress.toStdString() << std::endl;
 
-        // setupFolderDataListener(socket);
 
         // Initialize the Streaming to the Analytics Leader
         DataStreamer streamer(analyticsLeaderAddress, port);
         streamer.startStreaming();
+
+        setupFolderDataListener(socket,streamer);
 
         std::cout << "Processing complete. Output saved to: " << std::endl;
 

@@ -1,8 +1,13 @@
 #include "CSVProcessor.h"
 #include <QDir>
+#include <QSet>
 #include <QFile>
 #include <QTextStream>
 #include <QDebug>
+#include <QJsonArray>  // Include QJsonArray header
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <algorithm>  // For std::remove
 
 CSVProcessor::CSVProcessor(const QString &directory) : directory(directory) {}
 
@@ -78,8 +83,9 @@ void CSVProcessor::removeDuplicates()
             QString line = lines[i];
 #pragma omp critical
             {
-                if (seen.insert(line).second)
+                if (!seen.contains(line))
                 {
+                    seen.insert(line);
                     privateUniqueLines.append(line);
                 }
             }

@@ -9,7 +9,7 @@
 class QueryModule : public QObject {
     Q_OBJECT
 public:
-    QueryModule(QTcpSocket* sharedSocket, const QString& leaderAddress, QObject* parent = nullptr);
+    QueryModule(QTcpSocket* sharedSocket, const QString& analyticsLeaderAddress, QObject* parent = nullptr);
     void startQuerying();
 
 private slots:
@@ -18,7 +18,7 @@ private slots:
 private:
     QTcpSocket* socket;
     QTimer* timer;
-    QString leaderAddress;
+    QString analyticsLeaderAddress;
 };
 
 #endif // QUERYMODULE_H
