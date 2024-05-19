@@ -1,99 +1,94 @@
 #include "CSVProcessor.h"
-#include <fstream>
-#include <algorithm>
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <vector>
-#include <set>
-#include <omp.h>
-#include <iomanip>
-#include <ctime>
+#include <QDir>
+#include <QFile>
+#include <QTextStream>
+#include <QDebug>
 
-using namespace std;
+CSVProcessor::CSVProcessor(const QString &directory) : directory(directory) {}
 
-CSVProcessor::CSVProcessor(const std::string &inputFile, const std::string &outputFile)
-    : inputFile(inputFile), outputFile(outputFile) {}
-
-void CSVProcessor::processFile()
+QVector<QJsonDocument> CSVProcessor::processFiles()
 {
-    loadFile();
-    removeInvalidEntries();
-    removeDuplicates();
-    convertDateTime();
-    saveToFile();
+    QDir dir(directory);
+    QStringList csvFiles = dir.entryList(QStringList() << "*.csv", QDir::Files);
+    QVector<QJsonDocument> documents;
+
+    foreach (const QString &file, csvFiles)
+    {
+        QString filePath = dir.filePath(file);
+        loadFile(filePath);
+        removeInvalidEntries();
+        removeDuplicates();
+        convertDateTime();
+        QJsonObject json = serializeDataToJson();
+        documents.append(QJsonDocument(json));
+    }
+    return documents;
 }
 
-void CSVProcessor::loadFile()
+void CSVProcessor::loadFile(const QString &filePath)
 {
-    ifstream file(inputFile);
-    string line;
-    if (!file.is_open())
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
-        cerr << "Error opening file: " << inputFile << endl;
+        qDebug() << "Error opening file:" << filePath;
         return;
     }
-    while (getline(file, line))
+    QTextStream in(&file);
+    while (!in.atEnd())
     {
-        lines.push_back(line);
+        lines.append(in.readLine());
     }
     file.close();
-    cout << "Total lines read: " << lines.size() << endl;
 }
 
 void CSVProcessor::removeInvalidEntries()
 {
-    vector<string> validLines;
+    QVector<QString> validLines;
+    validLines.reserve(lines.size());
 #pragma omp parallel
     {
-        vector<string> privateValidLines;
+        QVector<QString> privateValidLines;
 #pragma omp for nowait
         for (int i = 0; i < lines.size(); ++i)
         {
-            if (lines[i].find("-999") == string::npos)
+            if (!lines[i].contains("-999"))
             {
-                privateValidLines.push_back(lines[i]);
+                privateValidLines.append(lines[i]);
             }
         }
 #pragma omp critical
-        validLines.insert(validLines.end(), privateValidLines.begin(), privateValidLines.end());
+        validLines.append(privateValidLines);
     }
-    lines.swap(validLines);
-    cout << "Lines after removing invalid entries: " << lines.size() << endl;
+    lines = validLines;
+    qDebug() << "Lines after removing invalid entries: " << lines.size();
 }
 
 void CSVProcessor::removeDuplicates()
 {
-    set<string> seen;
-    vector<string> uniqueLines;
-
+    QSet<QString> seen;
+    QVector<QString> uniqueLines;
+    uniqueLines.reserve(lines.size());
 #pragma omp parallel
     {
-        set<string> privateSeen;
-        vector<string> privateUniqueLines;
-
+        QSet<QString> privateSeen;
+        QVector<QString> privateUniqueLines;
 #pragma omp for nowait
         for (int i = 0; i < lines.size(); ++i)
         {
-            if (privateSeen.insert(lines[i]).second)
-            {
-                privateUniqueLines.push_back(lines[i]);
-            }
-        }
-
+            QString line = lines[i];
 #pragma omp critical
-        {
-            for (const auto &line : privateUniqueLines)
             {
                 if (seen.insert(line).second)
                 {
-                    uniqueLines.push_back(line);
+                    privateUniqueLines.append(line);
                 }
             }
         }
+#pragma omp critical
+        uniqueLines.append(privateUniqueLines);
     }
-    lines.swap(uniqueLines);
-    cout << "Lines after removing duplicate entries: " << lines.size() << endl;
+    lines = uniqueLines;
+    qDebug() << "Lines after removing duplicates: " << lines.size();
 }
 
 // Function to remove quotes from a string
@@ -105,65 +100,47 @@ std::string removeQuotes(std::string input)
 
 void CSVProcessor::convertDateTime()
 {
-    stringstream ss;
-    string item, newLine;
-    tm t = {};
-    char buffer[20];
+    int n = lines.size();
+    QVector<QString> newLines(n); // Preallocate vector to avoid resizing inside the loop
 
-#pragma omp parallel for private(ss, item, newLine, t, buffer) schedule(dynamic)
-    for (int i = 0; i < lines.size(); i++)
+#pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < n; ++i)
     {
-        ss.clear();
-        ss.str(lines[i]);
+        QTextStream ss(&lines[i]);
+        QString newLine;
+        QString item;
 
-        getline(ss, item, ',');
-        newLine = item + ","; // Discard the first item
+        // Read the first item which is assumed to be the date-time column
+        ss >> item;
 
-        getline(ss, item, ',');
-        newLine += item + ","; // Discard the second item
+        // Append the unique identifier "@<row_number+1>"
+        newLine = item + "@" + QString::number(i + 1);
 
-        if (getline(ss, item, ','))
+        // Read and append the rest of the line
+        while (!ss.atEnd())
         {
-            std::string cleanedDate = removeQuotes(item);
-            istringstream dateStream(cleanedDate);
-            dateStream >> get_time(&t, "%Y-%m-%dT%H:%M"); // ISO 8601 format
-
-            if (dateStream.fail())
-            {
-                cerr << "Date parsing failed for: " << item << " on line " << i << endl;
-                dateStream.clear(); // Clear error state
-                continue;           // Skip processing this line or handle it appropriately
-            }
-
-            strftime(buffer, 20, "%Y-%m-%d %H:%M", &t);
-            newLine += string(buffer);
-        }
-
-        // Append the rest of the line
-        while (getline(ss, item, ','))
-        {
+            ss >> item;
             newLine += "," + item;
         }
 
-// Critical section may be needed if we write to shared data
-#pragma omp critical
-        lines[i] = newLine; // Update the original line with the new formatted line
+        // Update the line in the newLines vector
+        newLines[i] = newLine;
     }
-    cout << "Lines after date conversion: " << lines.size() << endl;
+
+    // Swap the old lines with the newly processed ones
+    lines = newLines;
+    qDebug() << "Lines after adding unique IDs: " << lines.size();
 }
 
-void CSVProcessor::saveToFile()
+QJsonObject CSVProcessor::serializeDataToJson()
 {
-    ofstream out(outputFile, ios::trunc);
-    if (!out.is_open())
+    QJsonObject obj;
+    QJsonArray dataArray;
+    for (const QString &line : lines)
     {
-        cerr << "Failed to open output file: " << outputFile << endl;
-        return;
+        QJsonObject lineObj; // Assume each line is converted into a JSON object
+        dataArray.append(lineObj);
     }
-    for (const auto &line : lines)
-    {
-        out << line << endl;
-    }
-    out.close();
-    cout << "Data written to output file." << endl;
+    obj["Data"] = dataArray;
+    return obj;
 }

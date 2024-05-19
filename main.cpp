@@ -2,12 +2,14 @@
 #include "FolderDataHandler.h"
 #include "CSVProcessor.h"
 #include "QueryModule.h"
+#include "DataStreamer.h"
 #include <QCoreApplication>
 #include <iostream>
 
 using std::string;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     QCoreApplication app(argc, argv);
 
     QString host = "192.168.1.102";
@@ -15,28 +17,28 @@ int main(int argc, char *argv[]) {
     QString nodeType = "ingestion Client";
     double computingCapacity = 1.00;
 
-    QTcpSocket* socket = NodeReg::setupRegistration(host, port, nodeType, computingCapacity);
-    if (socket) {
+    QTcpSocket *socket = NodeReg::setupRegistration(host, port, nodeType, computingCapacity);
+    if (socket)
+    {
         std::cout << "Node registered successfully and listening for updates." << std::endl;
 
-        QString leaderAddress = NodeReg::getMetadataAnalyticsLeader();
-        std::cout << "Metadata Analytics Leader Address: " << leaderAddress.toStdString() << std::endl;
-        /*
-        setupFolderDataListener(socket);
+        QString analyticsLeaderAddress = NodeReg::getMetadataAnalyticsLeader();
+        std::cout << "Metadata Analytics Leader Address: " << analyticsLeaderAddress.toStdString() << std::endl;
 
-        string inputFile = "../sample.csv";
-        string outputFile = "../processed_airnow_data.csv";
-        CSVProcessor processor(inputFile, outputFile);
-        processor.processFile();  // Assuming processFile() has no return or handling inside
+        // setupFolderDataListener(socket);
 
-        std::cout << "Processing complete. Output saved to: " << outputFile << std::endl;*/
+        // Initialize the Streaming to the Analytics Leader
+        DataStreamer streamer(analyticsLeaderAddress, port);
+        streamer.startStreaming();
 
-        std::cout << "Processing complete. Output saved to: "<< std::endl;
+        std::cout << "Processing complete. Output saved to: " << std::endl;
 
         // Create and start the Query module
-        QueryModule queryModule(socket, leaderAddress);
+        QueryModule queryModule(socket, analyticsLeaderAddress);
         queryModule.startQuerying();
-    } else {
+    }
+    else
+    {
         std::cerr << "Failed to register the node." << std::endl;
         return -1; // Exit if registration fails
     }

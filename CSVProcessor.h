@@ -1,25 +1,26 @@
 #ifndef CSVPROCESSOR_H
 #define CSVPROCESSOR_H
 
-#include <string>
-#include <vector>
+#include <QString>
+#include <QVector>
+#include <QJsonObject>
+#include <QJsonDocument>
 
 class CSVProcessor
 {
 public:
-    CSVProcessor(const std::string &inputFile, const std::string &outputFile);
-    void processFile();
+    explicit CSVProcessor(const QString &directory);
+    QVector<QJsonDocument> processFiles();
 
 private:
-    std::string inputFile;
-    std::string outputFile;
-    std::vector<std::string> lines;
+    QString directory;
+    QVector<QString> lines;
 
-    void loadFile();
+    void loadFile(const QString &filePath);
     void removeInvalidEntries();
     void removeDuplicates();
     void convertDateTime();
-    void saveToFile();
+    QJsonObject serializeDataToJson();
 };
 
 #endif // CSVPROCESSOR_H
