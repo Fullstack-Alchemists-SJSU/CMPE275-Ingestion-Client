@@ -32,6 +32,7 @@ void processFolderData(const QString &folderName, bool isPrimary)
         std::cout << "Streaming data to metadata analytics leader: "
                   << metadataAnalyticsLeader.toStdString() << std::endl;
         // Implement the streaming logic to metadata analytics leader
+        // Do we need to handle this here
     }
     else
     {
