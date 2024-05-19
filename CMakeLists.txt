@@ -19,6 +19,10 @@ add_executable(ingestion-client
   NodeRegistration.cpp
   FolderDataHandler.h
   FolderDataHandler.cpp
+  CSVProcessor.h
+  CSVProcessor.cpp
+  QueryModule.h
+  QueryModule.cpp
 )
 
 target_link_libraries(ingestion-client Qt6::Core Qt6::Network)

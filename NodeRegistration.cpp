@@ -3,10 +3,13 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <iostream>
+#include <vector>
 
-namespace {
+namespace NodeReg {
 QString metadataAnalyticsLeader;
-}
+
+
+
 
 QTcpSocket* registerNode(const QString& host, quint16 port, const QString& nodeType, double computingCapacity) {
     auto socket = new QTcpSocket();
@@ -83,4 +86,6 @@ QTcpSocket* setupRegistration(const QString& host, quint16 port, const QString& 
 
 QString getMetadataAnalyticsLeader() {
     return metadataAnalyticsLeader;
+}
+
 }
