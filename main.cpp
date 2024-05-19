@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
 
         QString leaderAddress = NodeReg::getMetadataAnalyticsLeader();
         std::cout << "Metadata Analytics Leader Address: " << leaderAddress.toStdString() << std::endl;
-        /*
+
         setupFolderDataListener(socket);
 
         string inputFile = "../sample.csv";
@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
         CSVProcessor processor(inputFile, outputFile);
         processor.processFile();  // Assuming processFile() has no return or handling inside
 
-        std::cout << "Processing complete. Output saved to: " << outputFile << std::endl;*/
+        std::cout << "Processing complete. Output saved to: " << outputFile << std::endl;
 
         std::cout << "Processing complete. Output saved to: "<< std::endl;
 
