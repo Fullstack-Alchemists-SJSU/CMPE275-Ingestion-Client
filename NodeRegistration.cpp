@@ -7,6 +7,7 @@
 
 namespace NodeReg {
 QString metadataAnalyticsLeader;
+quint64 nodeUID; // Public variable to store the UID
 
 
 
@@ -39,12 +40,27 @@ QTcpSocket* registerNode(const QString& host, quint16 port, const QString& nodeT
     return socket;
 }
 
+void sendHeartBeat(QTcpSocket *clientSocket) {
+    QJsonObject responseObj;
+    responseObj["requestType"] = "Heartbeat Response";
+    responseObj["message"] = "I am alive";
+    responseObj["status"] = "OK";
+
+    QJsonDocument responseDoc(responseObj);
+    QByteArray responseData = responseDoc.toJson();
+
+    clientSocket->write(responseData);
+    clientSocket->waitForBytesWritten();
+}
+
 void handleNodeDiscovery(QTcpSocket* socket) {
     QObject::connect(socket, &QTcpSocket::readyRead, [socket]() {
         QByteArray data = socket->readAll();
         QJsonDocument doc = QJsonDocument::fromJson(data);
         QJsonObject message = doc.object();
-        if (message["requestType"].toString() == "Node Discovery") {
+        QString requestType = message["requestType"].toString();
+
+        if (requestType == "Node Discovery") {
             QJsonArray nodesArray = message["nodes"].toArray();
             std::vector<std::string> ingestionNodes;
             for (const auto& value : nodesArray) {
@@ -58,6 +74,12 @@ void handleNodeDiscovery(QTcpSocket* socket) {
             metadataAnalyticsLeader = message["metadataAnalyticsLeader"].toString();
             std::cout << "Received Node Discovery update with " << ingestionNodes.size() << " nodes." << std::endl;
             std::cout << "Metadata Analytics Leader: " << metadataAnalyticsLeader.toStdString() << std::endl;
+        }
+        else if (requestType == "Heartbeat") {
+            sendHeartBeat(socket);
+        } else if (requestType == "registering") {
+            nodeUID = message["Current Number"].toString().toULongLong();
+            std::cout << "Received UID: " << nodeUID << std::endl;
         }
     });
 }
@@ -74,6 +96,9 @@ QTcpSocket* setupRegistration(const QString& host, quint16 port, const QString& 
             if (message["requestType"].toString() == "Node Discovery") {
                 metadataAnalyticsLeader = message["metadataAnalyticsLeader"].toString();
                 std::cout << "Initial Metadata Analytics Leader: " << metadataAnalyticsLeader.toStdString() << std::endl;
+            } else if (message["requestType"].toString() == "registering") {
+                nodeUID = message["Current Number"].toString().toULongLong();
+                std::cout << "Received UID: " << nodeUID << std::endl;
             }
         } else {
             std::cerr << "Failed to receive registration response." << std::endl;
@@ -87,5 +112,8 @@ QTcpSocket* setupRegistration(const QString& host, quint16 port, const QString& 
 QString getMetadataAnalyticsLeader() {
     return metadataAnalyticsLeader;
 }
+
+
+
 
 }
