@@ -7,10 +7,10 @@
 #include <QTcpSocket>
 #include <iostream>
 
-void setupFolderDataListener(const QString &ipAddress, quint16 port, DataStreamer &streamer)
+void setupFolderDataListener(const QHostAddress &address, quint16 port, DataStreamer &streamer)
 {
     QTcpServer *server = new QTcpServer();
-    if (!server->listen(QHostAddress(ipAddress), port))
+    if (!server->listen(address, port))
     {
         std::cerr << "Failed to start the server." << std::endl;
         return;

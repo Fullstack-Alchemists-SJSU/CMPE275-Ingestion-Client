@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
         DataStreamer streamer(analyticsLeaderAddress, port);
         streamer.startStreaming();
 
-        setupFolderDataListener(analyticsLeaderAddress, port, streamer);
+        setupFolderDataListener(QHostAddress::Any, port, streamer);
 
         std::cout << "Processing complete. Output saved to: " << std::endl;
 
