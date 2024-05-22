@@ -1,13 +1,10 @@
 #ifndef FOLDERDATAHANDLER_H
 #define FOLDERDATAHANDLER_H
 
-#include <QTcpSocket>
-#include <QString>
 #include "DataStreamer.h"
+#include <QTcpServer>
+#include <QString>
 
-// Function to setup listening for folder data updates
-void setupFolderDataListener(QTcpSocket* socket, DataStreamer &streamer);
-
-
+void setupFolderDataListener(const QString &ipAddress, quint16 port, DataStreamer &streamer);
 
 #endif // FOLDERDATAHANDLER_H
